@@ -2,7 +2,33 @@
     ViewData["Title"] = "Home Page";
 }
 
+@model HomeViewModel
+
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
+    <h1 class="display-4">@Model.count</h1>
     <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
 </div>
+
+<script>
+
+   
+    (async () => {
+        let body = {'country':'usa','indicator':'gdp'}
+    res = await fetch("getdata/"+body['country']+"/"+body['indicator'])
+    json = await res.json()
+    console.log(json)
+
+    })()
+
+
+[
+{"Country":"Mexico",
+"Category":"GDP"
+,"Title":"Mexico GDP",
+"LatestValue":1465.85,
+"LatestValueDate":"2022-12-31T00:00:00",
+"q1":null,"q2":null,"q3":null,"q4":null,
+"YearEnd":1315.00,"YearEnd2":1302.00,"YearEnd3":1577.00,
+"q1_date":"2024-06-30T00:00:00","q2_date":"2024-09-30T00:00:00","q3_date":"2024-12-31T00:00:00","q4_date":"2025-03-31T00:00:00",
+"Frequency":"Yearly","Unit":"USD Billion","HistoricalDataSymbol":"WGDPMEXI"}]
+</script>
