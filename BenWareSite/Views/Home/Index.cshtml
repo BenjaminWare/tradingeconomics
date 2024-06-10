@@ -7,28 +7,141 @@
 <div class="text-center">
     <h1 class="display-4">@Model.count</h1>
     <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <button onclick="myFunc()">Click Me</button>
+    <div id="graph"></div>
+
 </div>
 
 <script>
 
    
-    (async () => {
-        let body = {'country':'usa','indicator':'gdp'}
-    res = await fetch("getdata/"+body['country']+"/"+body['indicator'])
-    json = await res.json()
-    console.log(json)
 
-    })()
+    async function myFunc() {
+        let body = {'country':'sweden','indicator':'gdp'}
+        res = await fetch("getdata/")
+        json_string = await res.json()
+        json = JSON.parse(json_string)
+        // The game requires atleast 10 datapoints to play
+        while (json.length < 10) {
+            res = await fetch("getdata/")
+            json_string = await res.json()
+            json = JSON.parse(json_string)
+        }
+        // Draws the chart, and discards the last datapoint as it is a message about the free tier
+        drawChart("graph",json.slice(0,json.length-1))
+
+    }
 
 
-[
-{"Country":"Mexico",
-"Category":"GDP"
-,"Title":"Mexico GDP",
-"LatestValue":1465.85,
-"LatestValueDate":"2022-12-31T00:00:00",
-"q1":null,"q2":null,"q3":null,"q4":null,
-"YearEnd":1315.00,"YearEnd2":1302.00,"YearEnd3":1577.00,
-"q1_date":"2024-06-30T00:00:00","q2_date":"2024-09-30T00:00:00","q3_date":"2024-12-31T00:00:00","q4_date":"2025-03-31T00:00:00",
-"Frequency":"Yearly","Unit":"USD Billion","HistoricalDataSymbol":"WGDPMEXI"}]
+    function drawChart(wrapper_id,data) {
+        data = data.map((d) => ({...d,"date":new Date(d.DateTime)}))
+        
+        ten_percent = Math.floor(data.length / 10)
+        revealed_data = data.slice(0,data.length-ten_percent)
+        guessing_data = data.slice(data.length- (ten_percent + 1))
+        incorrect_guess_one = generateNoisyCopy(guessing_data)
+        incorrect_guess_two = generateNoisyCopy(guessing_data)
+
+        
+        // Graph width should be the same size as client width with an upper limit of 960
+        let totalWidth = document.body.clientWidth > 960 ? 960 : docuument.body.clientWidth;
+        // set the dimensions and margins of the graph
+        var margin = {top: 10, right: 30, bottom: 30, left: 60},
+            width = totalWidth - margin.left - margin.right,
+            height = 600 - margin.top - margin.bottom;
+
+        // append the svg object to the body of the page
+        var svg = d3.select(`#${wrapper_id}`)
+        .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+            .attr("transform",
+                "translate(" + margin.left + "," + margin.top + ")");
+
+
+        // Add X axis --> it is a date format
+        var x = d3.scaleTime()
+            .domain(d3.extent(data.map(d => d.date)))
+            .range([ 0, width ]);
+        svg.append("g")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
+
+        // Add Y axis
+        var y = d3.scaleLinear()
+            .domain(d3.extent([0,...incorrect_guess_one.map((d) => d.Value),...data.map((d) => d.Value),...incorrect_guess_two.map((d) => d.Value)]))
+            .range([ height, 0 ]);
+        svg.append("g")
+            .call(d3.axisLeft(y));
+
+        // Add the revealed data
+        svg.append("path")
+            .datum(revealed_data)
+            .attr("fill", "none")
+            .attr("stroke", "blue")
+            .attr("stroke-width", 1.5)
+            .attr("d", d3.line()
+            .x(function(d) { return x(d.date) })
+            .y(function(d) { return y(d.Value) }))
+
+        // Add the correct guess
+        svg.append("path")
+            .datum(guessing_data)
+            .attr("fill", "none")
+            .attr("stroke", "red")
+            .attr("stroke-width", 3)
+            .attr("d", d3.line()
+            .x(function(d) { return x(d.date) })
+            .y(function(d) { return y(d.Value) }))
+
+        // Add two incorrect guesses
+        svg.append("path")
+            .datum(incorrect_guess_one)
+            .attr("fill", "none")
+            .attr("stroke", "yellow")
+            .attr("stroke-width",3)
+            .attr("d", d3.line()
+            .x(function(d) { return x(d.date) })
+            .y(function(d) { return y(d.Value) }))
+        svg.append("path")
+            .datum(incorrect_guess_two)
+            .attr("fill", "none")
+            .attr("stroke", "green")
+            .attr("stroke-width", 3)
+            .attr("d", d3.line()
+            .x(function(d) { return x(d.date) })
+            .y(function(d) { return y(d.Value) }))
+    /*
+        Given an array of data objects with attribute "Value"
+        Will add noise to Value by randomly selecting an:
+        1. upward trend
+        2. downward trend
+        3. pure noise
+
+        Requires data has attribute Value and is of minimium length 5
+
+        This method is designed to generate incorrect guess on the graph
+    */
+    function generateNoisyCopy(data) {
+        //TODO the scale factor does to much when their is a big difference it should simulate 1 days change
+        // Creates random scaler factor that is based on how much the data changed
+        min_value = data[0].Value
+        max_value = data[0].Value
+        data.forEach(d => {
+            min_value = min_value > d.Value ? d.Value : min_value
+            max_value = max_value < d.Value ? d.Value : max_value
+        })
+        scaler = (max_value - min_value) / data.length
+        console.log(scaler)
+        // Random number 0-2 specifies which technique should be used
+        technique = (Math.floor(Math.random() * 1)) 
+        direction = Math.random()
+        return data.map((d,i) => ({...d,"Value":d.Value + scaler * Math.log(i+1) * (direction > 0.5 ? -1 : 1)}))
+
+
+        
+
+    }
+}
 </script>

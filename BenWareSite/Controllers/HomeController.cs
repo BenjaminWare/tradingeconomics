@@ -16,11 +16,16 @@ namespace BenWareSite.Controllers;
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
-    private static string _clientKey = "guest:guest"; // TODO read from env
+    private Random _rand;
+    private static string _clientKey = "c29be7da50584af:ez7pa1a5sjgcpz4"; // TODO read from env
+
+    private string[] _countries = {"sweden","mexico","thailand","new zealand"};
+    private string[] _indicators = {"gdp","population","wages"};
 
     public HomeController(ILogger<HomeController> logger)
     {
         _logger = logger;
+        _rand = new Random();
 
     }
 
@@ -28,6 +33,8 @@ public class HomeController : Controller
     [Route("")]
     public IActionResult Index()
     {
+        // On page refresh make sure the order that the data comes down in is a new random order
+        _rand = new Random();
         HomeViewModel model = new HomeViewModel()
         {
             count = 0
@@ -40,25 +47,29 @@ public class HomeController : Controller
     public async Task<JsonResult> GetData(string? country, string? indicator)
     {
         if (country != null && indicator != null) {
-            return Json(await GetForecastsByCountryIndicator(country,indicator));
+            return Json(await GetHistoricalIndicatorsByCountries([country],[indicator]));
         }
         else {
-            return Json("Invalid Params: This query needs 'getdata/{country}/{indicator}'");
+            country = _countries[_rand.Next(0,_countries.Length)];
+            indicator = _indicators[_rand.Next(0,_indicators.Length)];
+            Console.WriteLine(country + "," + indicator);
+            return Json(await GetHistoricalIndicatorsByCountries([country],[indicator]));
         }
     }
 
-    /// <summary>
-    /// Get forecasts for a single country and indicator
-    /// </summary>
-    /// <param name="country">List of countries</param>
-    /// <param name="indicator">List of indicators</param>
+        /// <summary>
+        /// Get historical indicators given countries, indicators, start and end date
+        /// </summary>
+        /// <param name="countries">List of countries</param>
+        /// <param name="indicators">List of indicators</param>
+        /// <param name="startDate">Start date</param>
+        /// <param name="endDate">End date</param>
+        /// <returns>A task that will be resolved in a string with the request result</returns>
+        public async static Task<string> GetHistoricalIndicatorsByCountries(string[] countries, string[] indicators)
+        {
+            return await HttpRequester($"/historical/country/{string.Join(",", countries)}/indicator/{string.Join(",", indicators)}");
+        }
 
-    /// <returns>A task that will be resolved in a string with the request result</returns>
-    public async static Task<string> GetForecastsByCountryIndicator(string country, string indicator)
-    {
-
-        return await HttpRequester($"/forecast/country/{country}/indicator/{indicator}");
-    }
 
      /// <summary>
     /// Method to make HTTP calls to TradingEconomics API
