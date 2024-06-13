@@ -15,7 +15,7 @@ using BenWareSite.Models;
 
 namespace BenWareSite.Controllers;
 
-[Route("")]
+[Route("Country")]
 public class CountryController : Controller
 {
     private readonly ILogger<CountryController> _logger;
@@ -34,9 +34,23 @@ public class CountryController : Controller
     [Route("{country}")]
     public async Task<IActionResult> Index(string country)
     {
+        string CountryColor = "rgb(165,25,49)";
+        switch (country) {
+            case "sweden":
+                CountryColor = "#006AA7";
+                break;
+            case "new zealand":
+                CountryColor = "rgb(1,33,105)";
+                break;
+            case "mexico":
+                CountryColor = "rgb(0,99,65)";
+                break;
+
+        }
         // On page refresh make sure the order that the data comes down in is a new random order
         _rand = new Random();
         CountryViewModel model = new CountryViewModel(){
+            CountryColor = CountryColor,
             // TODO multiple requests at once .all() from js
             Data = JsonConvert.DeserializeObject<List<CountryDatapoint>>((await (GetHistoricalIndicatorsByCountry(country)))),
           
@@ -57,7 +71,7 @@ public class CountryController : Controller
         [HttpGet("getdata/{country?}/{indicator?}")]
         public async static Task<string> GetHistoricalIndicatorsByCountry(string country)
         {
-            var req =  await HttpRequester($"/historical/country/{country}/indicator/population,gdp");
+            var req =  await HttpRequester($"/historical/country/{country}/indicator/gdp,population,wages,temperature,personal savings,military%20expenditure");
             return req;
         }
 

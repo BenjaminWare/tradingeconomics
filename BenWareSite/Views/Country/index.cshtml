@@ -5,92 +5,112 @@
 
 @model CountryViewModel
 
-<div class="text-center">
+<div class="wrapper"><div id="graph"></div></div>
+    
 
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-    <button onclick="myFunc()">Click Me</button>
-    <div id="graph"></div>
-
+@* Linear gradient used with the svg graphs created once here to avoid duplicating it in the JS *@
+    <svg>
+        <defs>
+        <linearGradient id="graph-gradient" x1="0%" x2="0%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="@Model.CountryColor" />
+      <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+    </linearGradient>
+        </defs>
+    </svg>
 </div>
 
 <script>
+    //TODO make background grid nicer
+    //PICK different colors and get two more indicators
+    //Maybe let all countries on one page idk
+    //Write homepage
     let data = @Html.Raw(JsonConvert.SerializeObject(Model.Data));
     // The data always includes one entry explaining the free tier
     data = data.slice(0,data.length-1)
 
-
     // TODO use fetch to get other countries if they want and add them to the correct graphs, add labels make it all look nicer Good job today :)
-    let gdp = data.filter(d => d.Category == "GDP")
-    let population = data.filter(d => d.Category == "Population")
-    drawChart("graph",population);
-    drawChart("graph",gdp)
+    let categories = new Set(data.map(d => d.Category))
+    categories.forEach((cat) => {
+        console.log(cat)
+        console.log(data.filter(d => d.Category == cat))
+        drawChart("graph",data.filter(d => d.Category == cat),cat);
+    })
+    d3.select("#graph").style("display","flex")
 
-    @* async function myFunc() {
-        let body = {'country':'sweden','indicator':'gdp'}
-        res = await fetch("getdata/")
-        json_string = await res.json()
-        json = JSON.parse(json_string)
-        // The game requires atleast 10 datapoints to play
-        while (json.length < 10) {
-            res = await fetch("getdata/")
-            json_string = await res.json()
-            json = JSON.parse(json_string)
-        }
-        console.log(json)
-        // Draws the chart, and discards the last datapoint as it is a message about the free tier
-        drawChart("graph",json.slice(0,json.length-1))
-
-    } *@
-
-
-    function drawChart(wrapper_id,data) {
+    function drawChart(wrapper_id,data,indicator) {
         data = data.map((d) => ({...d,"date":new Date(d.DateTime)}))
     // set the dimensions and margins of the graph
-    const margin = {top: 10, right: 30, bottom: 20, left: 50},
+
+    const margin = {top: 30, right: 30, bottom: 30, left: 60},
         width = 460 - margin.left - margin.right,
         height = 400 - margin.top - margin.bottom;
 
+    const wrapper = d3.select("#"+wrapper_id)
+    .append("div")
+        .attr("class","svg_card")
+
+    wrapper.append("div")
+        .attr("class","graph_title")
+        .text(indicator)
     // append the svg object to the body of the page
-    const svg = d3.select("#"+wrapper_id)
+    const svg = wrapper
     .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
+        .attr("width", "100%")
+        .attr("height", "100%")
+        .attr("viewBox","0 0 460 400")
     .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
 
-    // List of subgroups = header of the csv files = soil condition here
-    const subgroups = data.map(d => d.Country)
-
-    // List of groups = species here = value of the first column called group -> I show them on the X axis
-    const groups = data.map(d => (d.date))
 
     // Add X axis
     const x = d3.scaleTime()
-        .domain(d3.extent(groups))
+        .domain(d3.extent(data.map( d=> d.date)))
         .range([0, width])
     svg.append("g")
         .attr("transform", `translate(0, ${height})`)
-        .call(d3.axisBottom(x).tickSizeOuter(0));
+        .call(d3.axisBottom(x).tickSizeOuter(0).ticks(5));
 
     // Add Y axis
     const y = d3.scaleLinear()
         .domain(d3.extent(data.map(d => d.Value)))
         .range([ height, 0 ]);
     svg.append("g")
-        .call(d3.axisLeft(y));
+        .call(d3.axisLeft(y).ticks(5));
 
-    // color palette = one color per subgroup
-    const color = d3.scaleOrdinal()
-        .domain(subgroups)
-        .range(['#e41a1c','#377eb8','#4daf4a'])
+    const line = svg.append("path")
+        .datum(data)
+        .attr("fill","none")
+        .attr("stroke","@Model.CountryColor")
+        .attr("stroke-width","3px")
+        .attr("d",d3.line()
+            .x((d,i) => width * i)
+            .y((d,i) => height- height* i)
+        )
+        .transition()
+        .duration(800)
+        .attr("d",d3.line()
+            .x(d => x(d.date))
+            .y(d => y(d.Value))
+        )
+    const min_val = d3.min(data.map(d => d.Value))
+    const area = svg.append("path")
+        .datum(data)
+        .attr("fill","url(#graph-gradient)")
+        .attr("stroke","none")
+        .style("opacity","0")
+        .attr("d",d3.area()
+            .x((d,i) => x(d.date))
+            .y0(y(min_val))
+            .y1((d,i) => y(d.Value))
+        ).transition()
+        .duration(300)
+        .style("opacity","1")
+        .delay(800)
 
-    //stack the data? --> stack per subgroup
-    const stackedData = d3.stack()
-        .keys(subgroups)
-        (data)
 
 
+@* 
     // Show the bars
     svg.append("g")
         .selectAll("g")
@@ -103,10 +123,54 @@
         .data(d => d)
         .join("rect")
             .attr("x", d => x(d.data.date))
-            .attr("y", d => y(d.data.Value))
-            .attr("height", d => height - y(d.data.Value))
-            .attr("width",(width ) / data.length)
+            .attr("y", d => y(min_val))
+            .attr("height", d => (height - y(min_val)))
+            .attr("width",(width) / data.length)
 
+
+    // Animation
+    svg.selectAll("rect")
+    .transition()
+    .duration(800)
+    .attr("y", function(d) { return y(d.data.Value); })
+    .attr("height", function(d) { return height - y(d.data.Value); })
+    .delay(function(d,i){ console.log(data.length);return((i)*(10000 / data.length ))}) *@
 
 }
  </script>
+
+ <style>
+
+.wrapper {
+    margin:0 auto;
+    max-width:1272px;
+}
+#graph {
+    display:none;
+    width: 100%;
+  flex-wrap: wrap;
+  margin:0 auto;
+  justify-content: center;
+
+}
+.svg_card {
+    max-width:400px;
+    min-width:400px;
+    flex:1;
+    box-shadow:0 2px 1px 1px lightgray;
+    padding:24px;
+    margin:12px;
+    border-radius:8px;
+    box-sizing:border-box;
+}
+
+.graph_title {
+    margin-right:auto;
+    font-size:22px;
+    font-weight:700;
+}
+.tick {
+    font-size:16px;
+}
+
+</style>

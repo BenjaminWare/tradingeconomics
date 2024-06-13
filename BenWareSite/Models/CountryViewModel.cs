@@ -2,6 +2,7 @@ namespace BenWareSite.Models;
 using Microsoft.AspNetCore.Mvc;
 public class CountryViewModel
 {
+    public string? CountryColor {get;set;}
     public List<CountryDatapoint>? Data {get;set;}
 
 }

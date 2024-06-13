@@ -21,11 +21,18 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Country" asp-action="sweden"><img class="logo" src="~/images/sweden.png" height="24px" alt="Flag of Sweden">Sweden</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Country" asp-action="thailand"><img class="logo" src="~/images/thailand.png" height="24px" alt="Flag of Thailand">Thailand</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Country" asp-action="mexico"><img class="logo"src="~/images/mexico.png" height="24px" alt="Flag of Mexico">Mexico</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Country" asp-action="new zealand"><img class="logo" src="~/images/new_zealand.png" height="24px" alt="Flag of New Zealand">New Zealand</a>
+                        </li>
+                        
                     </ul>
                 </div>
             </div>
@@ -42,3 +49,9 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+
+<style>
+    .logo {
+  margin-right:2px;
+}
+</style>

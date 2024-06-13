@@ -39,6 +39,11 @@ button.accept-policy {
   line-height: inherit;
 }
 
+.nav-item {
+  margin:0 8px;
+}
+
+
 .footer {
   position: absolute;
   bottom: 0;
