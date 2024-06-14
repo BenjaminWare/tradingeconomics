@@ -20,13 +20,16 @@ public class CountryController : Controller
 {
     private readonly ILogger<CountryController> _logger;
     private Random _rand;
-    private static string _clientKey = "c29be7da50584af:ez7pa1a5sjgcpz4";
+    private static string _clientKey = "guest:guest";
 
     public CountryController(ILogger<CountryController> logger)
     {
         _logger = logger;
         _rand = new Random();
-        // _clientKey = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build().GetSection("AppSettings")["ClientKey"];
+        _clientKey = Environment.GetEnvironmentVariable("TE_api_key");
+        Console.WriteLine("--------");
+        Console.WriteLine(_clientKey);
+        Console.WriteLine("-------");
 
     }
 
