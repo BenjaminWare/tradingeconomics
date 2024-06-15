@@ -1,11 +1,11 @@
 @using Newtonsoft.Json;
 @{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = @Model.Country;
 }
 
 @model CountryViewModel
 
-<div class="wrapper"><div id="graph"></div></div>
+<div class="wrapper"><div id="country_title">@Model.Country</div><div id="graph"></div></div>
     
 
 @* Linear gradient used with the svg graphs created once here to avoid duplicating it in the JS *@
@@ -20,19 +20,14 @@
 </div>
 
 <script>
-    //TODO make background grid nicer
-    //PICK different colors and get two more indicators
-    //Maybe let all countries on one page idk
-    //Write homepage
     let data = @Html.Raw(JsonConvert.SerializeObject(Model.Data));
     // The data always includes one entry explaining the free tier
     data = data.slice(0,data.length-1)
 
-    // TODO use fetch to get other countries if they want and add them to the correct graphs, add labels make it all look nicer Good job today :)
+    
+    // Draws one chart for each category of data sent down
     let categories = new Set(data.map(d => d.Category))
     categories.forEach((cat) => {
-        console.log(cat)
-        console.log(data.filter(d => d.Category == cat))
         drawChart("graph",data.filter(d => d.Category == cat),cat);
     })
     d3.select("#graph").style("display","flex")
@@ -140,7 +135,13 @@
  </script>
 
  <style>
-
+#country_title {
+    color:black;
+    font-size:24px;
+    text-transform: capitalize;
+    font-weight:700;
+    text-align:center;
+}
 .wrapper {
     margin:0 auto;
     max-width:1272px;

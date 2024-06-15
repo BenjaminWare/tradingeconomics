@@ -38,11 +38,18 @@ button.accept-policy {
   font-size: 1rem;
   line-height: inherit;
 }
+.nav-country {
+  margin-left:4px;
+}
 
 .nav-item {
   margin:0 8px;
 }
-
+.nav-link {
+  display:flex;
+  flex-direction: row;
+  gap:4px;
+}
 
 .footer {
   position: absolute;

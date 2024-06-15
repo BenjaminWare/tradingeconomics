@@ -26,15 +26,19 @@ public class CountryController : Controller
     {
         _logger = logger;
         _rand = new Random();
-        _clientKey = Environment.GetEnvironmentVariable("TE_api_key");
-        Console.WriteLine("--------");
-        Console.WriteLine(_clientKey);
-        Console.WriteLine("-------");
+        _clientKey = Environment.GetEnvironmentVariable("TE_api_key") ?? "guest:guest";
+
 
     }
 
 
     [Route("{country}")]
+    /// <summary>
+    /// Creates view needed to show a country page 
+    /// </summary>
+    /// <param name="country">Country whose data is to be shown</param>
+
+    /// <returns>The country view</returns>
     public async Task<IActionResult> Index(string country)
     {
         string CountryColor = "rgb(165,25,49)";
@@ -54,7 +58,7 @@ public class CountryController : Controller
         _rand = new Random();
         CountryViewModel model = new CountryViewModel(){
             CountryColor = CountryColor,
-            // TODO multiple requests at once .all() from js
+            Country = country,
             Data = JsonConvert.DeserializeObject<List<CountryDatapoint>>((await (GetHistoricalIndicatorsByCountry(country)))),
           
         };
@@ -87,31 +91,36 @@ public class CountryController : Controller
     /// <returns>A task tha will be resolved in a string with the content of the response</returns>
     public async static Task<string> HttpRequester(string url, string baseURL = "https://api.tradingeconomics.com/")
     {
-        try
-        {
-            using (var client = new HttpClient())
+        // Attempts the request 3 times if it fails before returning error
+        for (int i =0; i <3;i++) {
+            try
+                {
+                    using (var client = new HttpClient())
+                    {
+                        client.BaseAddress = new Uri(baseURL);
+                        client.DefaultRequestHeaders.Clear();
+
+                        //ADD Acept Header to tell the server what data type you want
+                        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/xml"));
+
+                        //ADD Authorization
+                        AuthenticationHeaderValue auth = new AuthenticationHeaderValue("Client", _clientKey);
+                        client.DefaultRequestHeaders.Authorization = auth;
+
+                        HttpResponseMessage response = await client.GetAsync(url);
+
+                        response.EnsureSuccessStatusCode();
+
+                        return await response.Content.ReadAsStringAsync();
+                    }
+                }
+            catch 
             {
-                client.BaseAddress = new Uri(baseURL);
-                client.DefaultRequestHeaders.Clear();
-
-                //ADD Acept Header to tell the server what data type you want
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/xml"));
-
-                //ADD Authorization
-                AuthenticationHeaderValue auth = new AuthenticationHeaderValue("Client", _clientKey);
-                client.DefaultRequestHeaders.Authorization = auth;
-
-                HttpResponseMessage response = await client.GetAsync(url);
-
-                response.EnsureSuccessStatusCode();
-
-                return await response.Content.ReadAsStringAsync();
+                // Waits one second as one request per second is allowed by Trading Economics in the free plan
+                Thread.Sleep(1000);
             }
         }
-        catch (Exception e)
-        {
-            return $"Error at HttpRequester with msg: {e}";
-        }
+         return $"Error at HttpRequester";
     }
     
 

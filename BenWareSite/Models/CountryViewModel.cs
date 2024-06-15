@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 public class CountryViewModel
 {
     public string? CountryColor {get;set;}
+    public string? Country {get;set;}
     public List<CountryDatapoint>? Data {get;set;}
 
 }
